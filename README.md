@@ -1,5 +1,7 @@
 ##Cufflinks
 
+(This is a Python 3 compatible version of Cufflinks modified by Thalesians)
+
 This library binds the power of [plotly](http://www.plot.ly) with the flexibility of [pandas](http://pandas.pydata.org/) for easy plotting.
 
 This library is available on [https://github.com/santosjorge/cufflinks](https://github.com/santosjorge/cufflinks)
