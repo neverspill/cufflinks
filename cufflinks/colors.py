@@ -1,11 +1,11 @@
 from collections import deque
-from auth import get_config_file
+from cufflinks.auth import get_config_file
 import numpy as np
 import colorsys
 import colorlover as cl
-from utils import inverseDict
+from cufflinks.utils import inverseDict
 import operator
-import themes
+import cufflinks.themes as themes
 from IPython.display import HTML,display
 
 class CufflinksError(Exception):
@@ -55,7 +55,12 @@ def hex_to_rgb(color):
 	"""
 	color=normalize(color)
 	color=color[1:]
-	return 'rgb'+str(tuple(ord(c) for c in color.decode('hex')))
+	# import codecs
+	# TOCHANGE return 'rgb'+str(tuple(ord(c) for c in color.decode('hex')))
+	# decode_hex = codecs.getdecoder("hex_codec")
+	# return 'rgb'+str(tuple(ord(c) for c in bytes.fromhex(color)))
+	#hex_digits = normalize(color)
+	return 'rgb'+str(tuple([int(s, 16) for s in (color[1:3], color[3:5], color[5:7])]))
 
 def normalize(color):
 	"""
@@ -616,7 +621,7 @@ def get_scales(scale=None,n=None):
 			scale=scale[1:]
 			is_reverse=True
 		d=_scales_names[scale.lower()]
-		keys=map(int,d.keys())
+		keys=list(map(int,d.keys()))
 		if n:
 			if n in keys:
 				cs=d[str(n)]

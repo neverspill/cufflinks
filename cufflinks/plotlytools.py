@@ -1,18 +1,15 @@
 import pandas as pd
 import plotly.plotly as py
-import tools 
-import offline
+import cufflinks.tools
+import cufflinks.offline as offline
 from plotly.graph_objs import *
 from collections import defaultdict
-from colors import normalize,get_scales,colorgen,to_rgba
-from themes import THEMES
+from cufflinks.colors import normalize,get_scales,colorgen,to_rgba
+from cufflinks.themes import THEMES
 from IPython.display import display,Image
 import time
 import copy
-import auth
-import ta
-
-
+import cufflinks.auth as auth
 
 def getTheme(theme):
 	return THEMES[theme]
@@ -21,7 +18,6 @@ def getThemes():
 	return THEMES.keys()
 
 __LAYOUT_KWARGS = ['legend','vline','hline','vspan','hspan','shapes']
-__TA_KWARGS = ['min_period','center','freq','how']
 
 def getLayout(theme=None,title='',xTitle='',yTitle='',zTitle='',barmode='',bargap=None,bargroupgap=None,
 				gridcolor=None,zerolinecolor=None,margin=None,annotations=False,is3d=False,**kwargs):
@@ -333,7 +329,7 @@ def dict_to_iplot(d):
 
 
 def _to_iplot(self,colors=None,colorscale=None,kind='scatter',mode='lines',symbol='dot',size='12',fill=False,
-		width=3,sortbars=False,keys=False,bestfit=False,bestfit_colors=None,asDates=False,text=None,**kwargs):
+		width=3,sortbars=False,keys=False,bestfit=False,bestfit_colors=None,asDates=False,**kwargs):
 	"""
 	Generates a plotly Data object 
 
@@ -420,8 +416,6 @@ def _to_iplot(self,colors=None,colorscale=None,kind='scatter',mode='lines',symbo
 		lines[key]["x"]=x
 		lines[key]["y"]=df[key].fillna('').values
 		lines[key]["name"]=key
-		if text is not None:
-			lines[key]["text"]=text
 		if 'bar' in kind:
 			lines[key]["marker"]={'color':to_rgba(colors[key],.6),'line':{'color':colors[key],'width':1}}
 		else:
@@ -764,11 +758,8 @@ def _iplot(self,data=None,layout=None,filename='',world_readable=None,
 					df=df[y]
 				if kind=='area':
 					df=df.transpose().fillna(0).cumsum().transpose()
-				if text:
-					text=self[text].values
 				data=df.to_iplot(colors=colors,colorscale=colorscale,kind=kind,fill=fill,width=width,sortbars=sortbars,keys=keys,
-						bestfit=bestfit,bestfit_colors=bestfit_colors,asDates=asDates,mode=mode,symbol=symbol,size=size,
-						text=text,**kwargs)				
+						bestfit=bestfit,bestfit_colors=bestfit_colors,asDates=asDates,mode=mode,symbol=symbol,size=size,**kwargs)				
 				if kind in ('spread','ratio'):
 						if kind=='spread':
 							trace=self.apply(lambda x:x[0]-x[1],axis=1)
@@ -807,9 +798,8 @@ def _iplot(self,data=None,layout=None,filename='',world_readable=None,
 				z=[int(100*(float(_)-rg.min())/(rg.max()-rg.min()))+12 for _ in rg]
 				text=kwargs['labels'] if 'labels' in kwargs else text
 				labels=self[text].values.tolist() if text else ''
-				clrs=colors if colors else get_scales(colorscale)
-				clrs=[clrs] if not isinstance(clrs,list) else clrs
-				clrs=[clrs[0]]*len(x)
+				clrs=get_colors(colors,colorscale,x).values()
+				gen=colorgen()
 				marker=Marker(color=clrs,size=z,symbol=symbol,
 								line=Line(width=width),textfont=getLayout(theme=theme)['xaxis1']['titlefont'])
 				trace=Scatter(x=x,y=y,marker=marker,mode='markers',text=labels)
@@ -943,11 +933,11 @@ def get_colors(colors,colorscale,keys,asList=False):
 			else:
 				colors={}
 				for key in keys:
-					colors[key]=clrgen.next()
+					colors[key]=next(clrgen)
 	return colors
 
 
-def _scatter_matrix(self,theme=None,bins=10,color='grey',size=2, **iplot_kwargs):
+def _scatter_matrix(self,theme=None,bins=10,color='grey',size=2):
 	"""
 	Displays a matrix with scatter plot for each pair of 
 	Series in the DataFrame.
@@ -965,10 +955,8 @@ def _scatter_matrix(self,theme=None,bins=10,color='grey',size=2, **iplot_kwargs)
 			Color to be used for each scatter plot
 		size : int
 			Size for each marker on the scatter plot
-		iplot_kwargs : key-value pairs
-			Keyword arguments to pass through to `iplot`
 	"""
-	return iplot(tools.scatter_matrix(self,theme=theme,bins=bins,color=color,size=size), **iplot_kwargs)
+	return iplot(tools.scatter_matrix(self,theme=theme,bins=bins,color=color,size=size))
 
 def _figure(self,**kwargs):
 	"""
@@ -989,50 +977,16 @@ def iplot(data_or_figure,validate=True,world_readable=False,filename='',online=N
 		return offline.py_offline.iplot(data_or_figure,show_link=show_link,link_text=link_text)
 	else:
 		if 'layout' in data_or_figure:
-			validate = False if 'shapes' in data_or_figure['layout'] else validate
+			validate = False if 'shapes' in data_or_figure['layout'] else True
 		return py.iplot(data_or_figure,validate=validate,world_readable=world_readable,
 						filename=filename)
 
-def _ta_figure(self,**kwargs):
-	"""
-	Generates a Plotly figure for the given DataFrame
-
-	Parameters:
-	-----------
-			All properties avaialbe can be seen with
-			help(cufflinks.pd.DataFrame.iplot)
-	"""
-	kwargs['asFigure']=True
-	return self.ta_plot(**kwargs)
-
-def _ta_plot(self,study,periods=14,column=None,include=True,str=None,detail=False,**iplot_kwargs):
-	if 'columns' in iplot_kwargs:
-		column=iplot_kwargs['columns']
-		del iplot_kwargs['columns']
-	if 'period' in iplot_kwargs:
-		periods=iplot_kwargs['period']
-		del iplot_kwargs['periods']
-
-	study_kwargs={}
-	for k in __TA_KWARGS:
-		if k in iplot_kwargs:
-			study_kwargs[k]=iplot_kwargs[k]
-			del iplot_kwargs[k]
-	if study=='rsi':
-		df=ta.rsi(self,periods=periods,column=column,include=include,str=str,detail=detail,**study_kwargs)
-	if study=='sma':
-		df=ta.sma(self,periods=periods,column=column,include=include,str=str,detail=detail,**study_kwargs)	
-	return df.iplot(**iplot_kwargs)
 
 pd.DataFrame.to_iplot=_to_iplot
 pd.DataFrame.scatter_matrix=_scatter_matrix
 pd.DataFrame.figure=_figure
-pd.DataFrame.ta_plot=_ta_plot
-pd.DataFrame.iplot=_iplot
-pd.DataFrame.ta_figure=_ta_figure
-pd.Series.ta_figure=_ta_figure
-pd.Series.ta_plot=_ta_plot
 pd.Series.figure=_figure
+pd.DataFrame.iplot=_iplot
 pd.Series.to_iplot=_to_iplot
 pd.Series.iplot=_iplot
 

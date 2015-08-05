@@ -1,12 +1,11 @@
 import numpy as np
 import pandas as pd
 import string
-from auth import get_config_file
 
 class CufflinksError(Exception):
 		pass
 
-def scatter3d(n_categories=5,n=10,prefix='category',mode=None):
+def scatter3d(n_categories=5,n=10,prefix='category'):
 	"""
 	Returns a DataFrame with the required format for 
 	a scatter3d plot
@@ -26,10 +25,10 @@ def scatter3d(n_categories=5,n=10,prefix='category',mode=None):
 	return pd.DataFrame({'x':np.random.randn(n*n_categories),
 						 'y':np.random.randn(n*n_categories),
 						 'z':np.random.randn(n*n_categories),
-						 'text':getName(n*n_categories,mode=mode),
+						 'text':getName(n*n_categories),
 						 'categories':categories})
 
-def bubble3d(n_categories=5,n=10,prefix='category',mode=None):
+def bubble3d(n_categories=5,n=10,prefix='category'):
 	"""
 	Returns a DataFrame with the required format for 
 	a bubble3d plot
@@ -50,10 +49,10 @@ def bubble3d(n_categories=5,n=10,prefix='category',mode=None):
 						 'y':np.random.randn(n*n_categories),
 						 'z':np.random.randn(n*n_categories),
 						 'size':np.random.randint(1,100,n*n_categories),
-						 'text':getName(n*n_categories,mode=mode),
+						 'text':getName(n*n_categories),
 						 'categories':categories}) 
 
-def bubble(n_categories=5,n=10,prefix='category',mode=None):
+def bubble(n_categories=5,n=10,prefix='category'):
 	"""
 	Returns a DataFrame with the required format for 
 	a bubble plot
@@ -73,33 +72,10 @@ def bubble(n_categories=5,n=10,prefix='category',mode=None):
 	return pd.DataFrame({'x':np.random.randn(n*n_categories),
 						 'y':np.random.randn(n*n_categories),
 						 'size':np.random.randint(1,100,n*n_categories),
-						 'text':getName(n*n_categories,mode=mode),
-						 'categories':categories}) 
+						 'text':getName(n*n_categories),
+						 'categories':categories})                             
 
-def pie(n_categories=5,n=10,prefix='category',mode=None):
-	"""
-	Returns a DataFrame with the required format for 
-	a pie plot
-
-	Parameters:
-	-----------
-		n_categories : int
-			Number of categories 
-		n : int
-			Number of points for each category
-		prefix : string
-			Name for each category
-	"""	
-	categories=[]
-	for i in range(n_categories):
-		categories.extend([prefix+str(i+1)]*n)
-	return pd.DataFrame({'x':np.random.randn(n*n_categories),
-						 'y':np.random.randn(n*n_categories),
-						 'size':np.random.randint(1,100,n*n_categories),
-						 'text':getName(n*n_categories,mode=mode),
-						 'categories':categories})                               
-
-def scatter(n_categories=5,n=10,prefix='category',mode=None):
+def scatter(n_categories=5,n=10,prefix='category'):
 	"""
 	Returns a DataFrame with the required format for 
 	a scatter plot
@@ -118,7 +94,7 @@ def scatter(n_categories=5,n=10,prefix='category',mode=None):
 		categories.extend([prefix+str(i+1)]*n)
 	return pd.DataFrame({'x':np.random.randn(n*n_categories),
 						 'y':np.random.randn(n*n_categories),
-						 'text':getName(n*n_categories,mode=mode),
+						 'text':getName(n*n_categories),
 						 'categories':categories})
 
 def heatmap(n_x=5,n_y=10):
@@ -137,7 +113,7 @@ def heatmap(n_x=5,n_y=10):
 	y=['y_'+str(_) for _ in range(n_y)]
 	return pd.DataFrame(surface(n_x-1,n_y-1).values,index=x,columns=y)
 
-def lines(n_traces=5,n=100,columns=None,dateIndex=True,mode=None):
+def lines(n_traces=5,n=100,columns=None,dateIndex=True):
 	"""
 	Returns a DataFrame with the required format for 
 	a scatter (lines) plot
@@ -156,10 +132,10 @@ def lines(n_traces=5,n=100,columns=None,dateIndex=True,mode=None):
 	"""	
 	index=pd.date_range('1/1/15',periods=n) if dateIndex else list(range(n))
 	df=pd.DataFrame(np.random.randn(n,n_traces),index=index,
-		columns=getName(n_traces,columns=columns,mode=mode))
+		columns=getName(n_traces,columns=columns))
 	return df.cumsum()  
 
-def box(n_traces=5,n=100,mode=None):
+def box(n_traces=5,n=100):
 	"""
 	Returns a DataFrame with the required format for 
 	a box plot
@@ -172,10 +148,10 @@ def box(n_traces=5,n=100,mode=None):
 			Number of points for each trace
 	"""	
 	df=pd.DataFrame([np.random.chisquare(np.random.randint(2,10),n_traces) for _ in range(n)],
-		columns=getName(n_traces,mode=mode))
+		columns=getName(n_traces))
 	return df       
 
-def histogram(n_traces=1,n=500,mode=None):
+def histogram(n_traces=1,n=500):
 	"""
 	Returns a DataFrame with the required format for 
 	a box plot
@@ -188,7 +164,7 @@ def histogram(n_traces=1,n=500,mode=None):
 			Number of points for each trace
 	"""	
 	df=pd.DataFrame(np.random.randn(n,n_traces)+np.random.randint(-1,2),
-		columns=getName(n_traces,mode=mode))                     
+		columns=getName(n_traces))                     
 	return df
 
 def surface(n_x=20,n_y=20):
@@ -230,7 +206,7 @@ def sinwave(n=4,inc=.25):
 	Z = np.sin(R)/(.5*R)
 	return pd.DataFrame(Z,index=x,columns=y)
 
-def getName(n=1,name=3,exchange=2,columns=None,mode='abc'):
+def getName(n=1,name=3,exchange=2,columns=None):
 	if columns:
 		if isinstance(columns,str):
 			columns=[columns]
@@ -238,16 +214,5 @@ def getName(n=1,name=3,exchange=2,columns=None,mode='abc'):
 			raise CufflinksError("Length of column names needs to be the \n"
 				  "same length of traces")
 	else:
-		if mode is None:
-			mode=get_config_file()['datagen_mode']
-		if mode=='abc':
-			columns=list(string.ascii_letters[:n])
-		elif mode=='stocks':
-			columns=[''.join(np.random.choice(list(string.uppercase),name)) + '.' + ''.join(np.random.choice(list(string.uppercase),exchange)) for _ in range(n)]
-		else:
-			raise CufflinksError("Unknown mode: {0}".format(mode))
+		columns=[''.join(np.random.choice(list(string.uppercase),name)) + '.' + ''.join(np.random.choice(list(string.uppercase),exchange)) for _ in range(n)]
 	return columns
-
-
-
-
